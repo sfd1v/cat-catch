@@ -490,6 +490,18 @@
             <label for="title">${title}</label><input type="text" class="width100" value="test Video" id="title">
             <span data-i18n-outer="result"></span>:<br><span id="tagTestResult"></span>
           </div>
+
+          <div class="item">
+            <i18n>enable</i18n>
+            <div>${clipboard}</div>
+            <div class="switch">
+              <label class="switchLabel switchRadius">
+                <input type="checkbox" id="clipboard" save="click" class="switchInput" />
+                <span class="switchRound switchRadius"><em class="switchRoundBtn switchRadius"></em></span>
+              </label>
+            </div>
+          </div>
+
           <div class="flex-end">
             <button type="button" id="showTestTag" data-i18n="test"></button>
             <button type="button" class="resetOption" data-i18n="resetSettings"></button>
@@ -723,6 +735,16 @@
           </div>
 
           <div class="item">
+            <div data-i18n="umpDecode"></div>
+            <div class="switch">
+              <label class="switchLabel switchRadius">
+                <input type="checkbox" id="umpDecode" save="click" class="switchInput" />
+                <span class="switchRound switchRadius"><em class="switchRoundBtn switchRadius"></em></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="item">
             <div data-i18n="onlineServiceAddress"></div>
             <div class="switch switchSelect">
               <select id="onlineServiceAddress" class="select" save="select">
@@ -805,9 +827,19 @@
           </div>
 
           <div class="item">
-            <div data-i18n="groupTime"></div>
+            <div data-i18n="groupTime" style="margin-left: 2rem;"></div>
             <div class="switch">
               <input id="groupTime" save="input" type="number" min="1" class="width3rem">
+            </div>
+          </div>
+
+          <div class="item">
+            <div data-i18n="videoFloat"></div>
+            <div class="switch">
+              <label class="switchLabel switchRadius">
+                <input type="checkbox" id="videoFloat" save="click" class="switchInput" />
+                <span class="switchRound switchRadius"><em class="switchRoundBtn switchRadius"></em></span>
+              </label>
             </div>
           </div>
 
@@ -957,11 +989,11 @@
         </div>
         <div class="item">
           <span data-i18n-outer="documentation"></span>:
-          <a href="https://cat-catch.94cat.com/" target="_blank" id="docs">https://cat-catch.94cat.com/</a>
+          <a target="_blank" id="documentationURL"></a>
         </div>
         <div class="item">
           Github:
-          <a href="https://github.com/xifangczy/cat-catch" target="_blank">https://github.com/xifangczy/cat-catch</a>
+          <a target="_blank" id="githubURL"></a>
         </div>
       </div>
     </section>

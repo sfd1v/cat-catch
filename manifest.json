@@ -35,6 +35,9 @@
     "sidePanel",
     "contextMenus"
   ],
+  "optional_permissions": [
+    "clipboardRead"
+  ],
   "commands": {
     "_execute_action": {},
     "enable": {
@@ -73,13 +76,15 @@
         "http://*/*"
       ],
       "js": [
-        "js/content-script.js"
+        "js/content-script.js",
+        "js/video-float.js"
       ],
       "run_at": "document_start",
-      "all_frames": true
+      "all_frames": true,
+      "match_about_blank": true
     }
   ],
   "default_locale": "en",
-  "version": "2.7.2",
+  "version": "2.7.4",
   "incognito": "split"
 }

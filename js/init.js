@@ -12,6 +12,10 @@ G.damnUrl = [
 ];
 G.damnUrlSet = new Set();
 
+// UMP 解码 (YouTube) 的代码内开关 商店发行版改为 false
+// 关闭后 不加载 js/ump.background.js 不注入解码脚本 设置页不显示对应的开关
+G.umpSupport = true;
+
 // 初始化当前tabId
 chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (tabs[0] && tabs[0].id) {
@@ -150,6 +154,7 @@ G.OptionLists = {
     maxLength: G.isMobile ? 999 : 9999,
     sidePanel: false,   // 侧边栏
     deepSearch: false, // 常开深度搜索
+    umpDecode: true,  // 解码 YouTube 的 UMP 媒体流 (页面内解码 轨道以 blob 地址加入资源列表)
 
     // MQTT 配置
     send2MQTT: false,
@@ -176,6 +181,8 @@ G.OptionLists = {
 
     showGroup: true, // 显示分组
     groupTime: 120, // 分组时间间隔，单位毫秒
+
+    videoFloat: true,  // 在视频旁显示下载列表浮窗
 };
 
 // 本地储存的配置
@@ -198,11 +205,11 @@ G.version = G.version && G.version[2] ? parseInt(G.version[2]) : 93;
 
 // 脚本列表
 G.scriptList = new Map();
-G.scriptList.set("search.js", { key: "search", refresh: true, allFrames: true, world: "MAIN", name: i18n.deepSearch, off: i18n.closeSearch, i18n: false, tabId: new Set() });
-G.scriptList.set("catch.js", { key: "catch", refresh: true, allFrames: true, world: "MAIN", name: i18n.cacheCapture, off: i18n.closeCapture, i18n: true, tabId: new Set() });
-G.scriptList.set("recorder.js", { key: "recorder", refresh: false, allFrames: true, world: "MAIN", name: i18n.videoRecording, off: i18n.closeRecording, i18n: true, tabId: new Set() });
-G.scriptList.set("recorder2.js", { key: "recorder2", refresh: false, allFrames: false, world: "ISOLATED", name: i18n.screenCapture, off: i18n.closeCapture, i18n: true, tabId: new Set() });
-G.scriptList.set("webrtc.js", { key: "webrtc", refresh: true, allFrames: true, world: "MAIN", name: i18n.recordWebRTC, off: i18n.closeRecording, i18n: true, tabId: new Set() });
+G.scriptList.set("search.js", { key: "search", refresh: true, allFrames: true, world: "MAIN", name: i18n.deepSearch, off: i18n.closeSearch, tabId: new Set() });
+G.scriptList.set("catch.js", { key: "catch", refresh: true, allFrames: true, world: "MAIN", name: i18n.cacheCapture, off: i18n.closeCapture, file: ["catch-script/i18n.js"], tabId: new Set() });
+G.scriptList.set("recorder.js", { key: "recorder", refresh: false, allFrames: true, world: "MAIN", name: i18n.videoRecording, off: i18n.closeRecording, file: ["catch-script/i18n.js"], tabId: new Set() });
+G.scriptList.set("recorder2.js", { key: "recorder2", refresh: false, allFrames: false, world: "ISOLATED", name: i18n.screenCapture, off: i18n.closeCapture, file: ["catch-script/i18n.js"], tabId: new Set() });
+G.scriptList.set("webrtc.js", { key: "webrtc", refresh: true, allFrames: true, world: "MAIN", name: i18n.recordWebRTC, off: i18n.closeRecording, file: ["catch-script/i18n.js"], tabId: new Set() });
 
 // ffmpeg
 G.ffmpegConfig = {
@@ -219,6 +226,17 @@ G.streamSaverConfig = {
         return G.onlineServiceAddress == 0 ? "https://stream.bmmmd.com/mitm.html" : "https://ffmpeg.94cat.com/mitm.html";
     }
 }
+
+// 在线文档
+G.documentationURL = {
+    url: "https://cat-catch.94cat.com/"
+}
+
+// github地址
+G.githubURL = {
+    url: "https://github.com/xifangczy/cat-catch"
+}
+
 
 // 正则预编译
 const reFilterFileName = /[<>:"|?*~]/g; // 过滤文件名包含的非法字符

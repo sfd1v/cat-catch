@@ -65,19 +65,31 @@ function AddMedia(data, currentTab = true) {
   if (data.name && data.name.length >= 50 && !_tabId) {
     trimName = trimName.substr(0, 20) + '...' + trimName.substr(-30);
   }
-  //添加下载文件名
+  // 添加页面DOM引用
   Object.defineProperty(data, "pageDOM", {
     get() { return pageDOM; }
   });
-  data.downFileName = G.TitleName ? templates(G.downFileName, data) : data.name;
-  data.downFileName = filterFileName(data.downFileName);
-  if (isEmpty(data.downFileName)) {
-    data.downFileName = data.name;
-  }
+  //添加下载文件名
+  Object.defineProperty(data, "downFileName", {
+    get() {
+      let downFileName = G.TitleName ? templates(G.downFileName, data) : data.name;
+      downFileName = filterFileName(downFileName);
+      if (isEmpty(downFileName)) {
+        downFileName = data.name;
+      }
+      return downFileName;
+    },
+    configurable: true
+  });
+
   // 文件大小单位转换
   data._size = data.size;
   if (data.size) {
     data.size = byteToSize(data.size);
+  }
+  // 页面内解码得到的轨道 没收全时在大小后面带上接收进度
+  if (data.ump) {
+    data.size = umpSizeText(data);
   }
   // 是否需要解析
   data.parsing = false;
@@ -112,6 +124,7 @@ function AddMedia(data, currentTab = true) {
                 <img src="img/parsing.png" class="icon parsing ${data.parsing ? "" : "hide"}" id="parsing" data-type="${data.parsing}" title="${i18n.parser}"/>
                 <img src="img/play.png" class="icon play ${data.isPlay ? "" : "hide"}" id="play" title="${i18n.preview}"/>
                 <img src="img/download.svg" class="icon download" id="download" title="${i18n.download}"/>
+                <img src="img/send2ffmpeg.svg" class="icon send2ffmpeg ${data.ump ? "" : "hide"}" id="umpMerge" title="${i18n.onlineMerge}"/>
                 <img src="img/aria2.png" class="icon aria2 ${G.enableAria2Rpc ? "" : "hide"}"" id="aria2" title="Aria2"/>
                 <img src="img/invoke.svg" class="icon invoke ${G.invoke ? "" : "hide"}"" id="invoke" title="${i18n.invoke}"/>
                 <img src="img/send.svg" class="icon send ${G.send2localManual || G.send2local ? "" : "hide"}"" id="send2local" title="${i18n.send2local}"/>
@@ -120,7 +133,7 @@ function AddMedia(data, currentTab = true) {
             <div class="url hide">
                 <div id="mediaInfo" data-state="false">
                     ${data.title ? `<b>${i18n.title}:</b> ${data.title}` : ""}
-                    ${data.type ? `<br><b>MIME:</b>  ${data.type}` : ""}
+                    ${data.type ? `<br><b>MIME:</b>  ${data.ump?.mime || data.type}` : ""}
                 </div>
                 <div class="moreButton">
                     <div id="qrcode"><img src="img/qrcode.png" class="icon qrcode" title="QR Code"/></div>
@@ -128,7 +141,7 @@ function AddMedia(data, currentTab = true) {
                     <div id="catDownFFmpeg"><img src="img/send2ffmpeg.svg" class="icon send2ffmpeg" title="${i18n.sendFfmpeg}"/></div>
                     <div><img src="img/invoke.svg" class="icon invoke" title="${i18n.invoke}"/></div>
                 </div>
-                <a href="${data.url}" target="_blank" download="${data.downFileName}">${data.url}</a>
+                <a href="${data.url}" target="_blank">${data.url}</a>
                 <br>
                 <img id="screenshots" class="hide"/>
                 <video id="preview" class="hide" controls></video>
@@ -244,21 +257,39 @@ function AddMedia(data, currentTab = true) {
     $(this).html("").qrcode({ width: size, height: size, text: data.url }).off("click");
   });
   // 猫抓下载器 下载
-  data.html.find("#catDown").click(function () {
+  data.html.find("#catDown").click(async function () {
+    await getClipboardText(data);
     catDownload(data);
   });
-  data.html.find("#catDownFFmpeg").click(function () {
+  data.html.find("#catDownFFmpeg").click(async function () {
+    await getClipboardText(data);
     catDownload(data, { ffmpeg: "addFile" });
   });
+  // 页面内解码得到的轨道 一键和同一个视频的另一条轨道 (视频 + 音频) 在线合并
+  data.html.find("#umpMerge").click(function (event) {
+    event.stopPropagation();
+    const other = umpCounterpart(data);
+    if (!other) {
+      Tips(umpIsAudio(data) ? i18n.noVideo : i18n.noAudio, 2000);
+      return false;
+    }
+    catDownload(umpIsAudio(data) ? [other, data] : [data, other], { ffmpeg: "merge" });
+    return false;
+  });
+  umpRefresh(data);
   //点击复制网址
-  data.html.find('#copy').click(function () {
+  data.html.find('#copy').click(async function (event) {
+    event.stopPropagation();
+    await getClipboardText(data);
     const text = copyLink(data);
     navigator.clipboard.writeText(text);
     Tips(i18n.copiedToClipboard);
     return false;
   });
   // 发送到Aria2
-  data.html.find('#aria2').click(function () {
+  data.html.find('#aria2').click(async function (event) {
+    event.stopPropagation();
+    await getClipboardText(data);
     aria2AddUri(data, function (data) {
       Tips(i18n.hasSent + JSON.stringify(data), 2000);
     }, function (errMsg) {
@@ -268,7 +299,9 @@ function AddMedia(data, currentTab = true) {
     return false;
   });
   // 下载
-  data.html.find('#download').click(function (event) {
+  data.html.find('#download').click(async function (event) {
+    event.stopPropagation();
+    await getClipboardText(data);
     if (G.m3u8dl && (isM3U8(data) || isMPD(data))) {
       if (!data.url.startsWith("blob:")) {
         const m3u8dlArg = templates(G.m3u8dlArg, data);
@@ -319,12 +352,16 @@ function AddMedia(data, currentTab = true) {
     chrome.downloads.download({
       url: data.url,
       filename: data.downFileName,
-      saveAs: G.saveAs
+      saveAs: G.saveAs,
+      // 嗅探到的是 POST 请求 使用相同的方法下载
+      ...(data.method == "POST" ? { method: "POST" } : {})
     }, function (id) { downData[id] = data; });
     return false;
   });
   // 调用
-  data.html.find('.invoke').click(function (event) {
+  data.html.find('.invoke').click(async function (event) {
+    event.stopPropagation();
+    await getClipboardText(data);
     const url = templates(G.invokeText, data);
 
     // 下载前确认参数
@@ -360,8 +397,10 @@ function AddMedia(data, currentTab = true) {
     return false;
   });
   //播放
-  data.html.find('#play').click(function () {
+  data.html.find('#play').click(async function (event) {
     if (isEmpty(G.Player)) { return true; }
+    event.stopPropagation();
+    await getClipboardText(data);
     if (G.Player == "$shareApi$" || G.Player == "${shareApi}") {
       navigator.share({ url: data.url });
       return false;
@@ -375,7 +414,9 @@ function AddMedia(data, currentTab = true) {
     return false;
   });
   //解析
-  data.html.find('#parsing').click(function (e) {
+  data.html.find('#parsing').click(async function (event) {
+    event.stopPropagation();
+    await getClipboardText(data);
     openParser(data);
     return false;
   });
@@ -397,7 +438,9 @@ function AddMedia(data, currentTab = true) {
     }
   });
   // 数据发送
-  data.html.find("#send2local").click(function () {
+  data.html.find("#send2local").click(async function (event) {
+    event.stopPropagation();
+    await getClipboardText(data);
     send2local("catch", data, data.tabId).then(function (success) {
       success && success?.ok && Tips(i18n.hasSent, 1000);
     }).catch(function (error) {
@@ -407,7 +450,8 @@ function AddMedia(data, currentTab = true) {
   });
 
   // MQTT 发送
-  data.html.find("#mqtt").click(function () {
+  data.html.find("#mqtt").click(async function (event) {
+    event.stopPropagation();
     const $mqttButton = $(this);
 
     // 防止重复点击
@@ -420,6 +464,8 @@ function AddMedia(data, currentTab = true) {
 
     // 1. 点击后，提示 正在发送到MQTT服务器
     Tips(i18n.sendingToMQTT || "Sending to MQTT server...", 2000);
+
+    await getClipboardText(data);
 
     sendToMQTT(data).then(function (success) {
       // 5. 已发送消息到 MQTT 服务器
@@ -566,14 +612,18 @@ $('#DownFile').click(function () {
     setTimeout(function () {
       chrome.downloads.download({
         url: data.url,
-        filename: data.downFileName
+        filename: data.downFileName,
+        ...(data.method == "POST" ? { method: "POST" } : {})
       }, function (id) { downData[id] = data; });
     }, index * 100);
   };
 });
 // 合并下载
-$mergeDown.click(function () {
+$mergeDown.click(async function () {
   const [checkedData, maxSize] = getCheckedData();
+  // for (let data of checkedData) {
+  //   await getClipboardText(data);
+  // }
   const taskId = Date.parse(new Date());
   // 都是m3u8 自动合并并发送到ffmpeg
   if (checkedData.every(data => isM3U8(data))) {
@@ -744,6 +794,10 @@ $("[go]").click(function () {
     chrome.tabs.create({ url: G.ffmpegConfig.url })
     return;
   }
+  if (url == "documentationURL") {
+    chrome.tabs.create({ url: G.documentationURL.url })
+    return;
+  }
   chrome.tabs.create({ url: url });
 });
 // 暂停 启用
@@ -831,7 +885,7 @@ async function getPageDOM() {
       });
     });
 
-    return result ? new DOMParser().parseFromString(result, 'text/html') : null;
+    return result ? new DOMParser().parseFromString(sanitizeHtmlString(result), 'text/html') : null;
   } catch (error) {
     return null;
   }
@@ -861,6 +915,7 @@ const interval = setInterval(async function () {
       console.error('Error getting page DOM:', error);
     });
   }
+
   // 填充数据
   chrome.runtime.sendMessage(chrome.runtime.id, { Message: "getData", tabId: G.tabId }, function (data) {
     if (!data || data === "OK") {
@@ -968,6 +1023,32 @@ const interval = setInterval(async function () {
         $all[G.reverse ? 'prepend' : 'append'](html);
         UItoggle();
       }
+      sendResponse("OK");
+      return true;
+    }
+    // 更新资源 页面内解码得到的轨道 大小 / 进度 / 地址 随播放变化
+    if (Message.Message == "popupUpdateData") {
+      for (const list of allData.values()) {
+        const data = list.get(Message.data.requestId);
+        if (!data) { continue; }
+        data.url = Message.data.url;
+        data.ump = Message.data.ump;
+        data._size = Message.data.size;
+        umpRefresh(data);
+      }
+      sendResponse("OK");
+      return true;
+    }
+    // 移除资源 页面换了视频 之前的轨道已经失效
+    if (Message.Message == "popupRemoveData") {
+      for (const [currentTab, list] of allData) {
+        const data = list.get(Message.data.requestId);
+        if (!data) { continue; }
+        data.html.remove();
+        list.delete(Message.data.requestId);
+        currentTab ? currentCount-- : allCount--;
+      }
+      UItoggle();
       sendResponse("OK");
       return true;
     }
@@ -1154,6 +1235,36 @@ function UItoggle() {
     }
   });
   size >= 2 ? mergeDownButton() : $mergeDown.attr('disabled', true);
+}
+// 页面内解码得到的轨道 (YouTube) 是音频还是视频
+function umpIsAudio(data) {
+  return (data.ump?.mime || data.type || "").startsWith("audio");
+}
+// 轨道的大小 没收全时后面带上接收进度
+function umpSizeText(data) {
+  const size = data._size ? byteToSize(data._size) : "";
+  if (!data.ump || data.ump.complete || !data.ump.total) { return size; }
+  return `${size} ${Math.floor(data.ump.received / data.ump.total * 100)}%`;
+}
+// 轨道的 大小 / 进度 / 地址 有变化时 更新已有的行
+function umpRefresh(data) {
+  if (!data.ump || !data.html) { return; }
+  data.size = umpSizeText(data);
+  const incomplete = !data.ump.complete && data.ump.total;
+  data.html.find(".size").text(data.size).toggleClass("hide", !data.size)
+    .attr("title", incomplete ? i18n("umpProgress", [String(data.ump.received), String(data.ump.total)]) : "");
+  data.html.find(".url > a").attr("href", data.url).text(data.url);
+}
+// 找到同一个视频的另一条轨道 视频找音频 音频找视频 有多条时取数据最多的
+function umpCounterpart(data) {
+  if (!data.ump) { return null; }
+  const audio = umpIsAudio(data);
+  let found = null;
+  getAllData().forEach(function (item) {
+    if (item === data || !item.ump || item.tabId != data.tabId || item.ump.videoId != data.ump.videoId || umpIsAudio(item) == audio) { return; }
+    if (!found || (item._size ?? 0) > (found._size ?? 0)) { found = item; }
+  });
+  return found;
 }
 // 检查是否符合条件 更改 合并下载 按钮状态
 function mergeDownButtonCheck(data) {

@@ -5,6 +5,8 @@
       "js/function.js",
       "js/templates.js",
       "js/init.js",
+      "js/popup-utils.js",
+      "js/video-float.background.js",
       "js/background.js"
     ]
   },
@@ -25,6 +27,11 @@
     "page": "options.html",
     "open_in_tab": true
   },
+  "sidebar_action": {
+    "default_icon": "img/icon.png",
+    "default_title": "__MSG_catCatch__",
+    "default_panel": "popup.html"
+  },
   "permissions": [
     "tabs",
     "webRequest",
@@ -35,6 +42,9 @@
     "scripting",
     "declarativeNetRequest",
     "contextMenus"
+  ],
+  "optional_permissions": [
+    "clipboardRead"
   ],
   "commands": {
     "_execute_browser_action": {},
@@ -80,9 +90,11 @@
         "http://*/*"
       ],
       "js": [
-        "js/content-script.js"
+        "js/content-script.js",
+        "js/video-float.js"
       ],
       "all_frames": true,
+      "match_about_blank": true,
       "run_at": "document_start"
     }
   ],
@@ -90,5 +102,5 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "default_locale": "en",
-  "version": "2.7.2"
+  "version": "2.7.4"
 }

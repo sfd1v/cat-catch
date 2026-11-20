@@ -1,4 +1,22 @@
 (function () {
+
+    // ===== Function.prototype.toString =====
+    const __origToString = Function.prototype.toString;
+    const __nativeStrMap = new WeakMap();   // 钩子函数(Proxy) -> 原生 toString 串
+    let __toStringPatched = false;
+    function patchToString() {
+        if (__toStringPatched) return;
+        __toStringPatched = true;
+        Function.prototype.toString = new Proxy(__origToString, {
+            apply(target, thisArg, args) {
+                const nativeStr = __nativeStrMap.get(thisArg);
+                if (nativeStr !== undefined) return nativeStr;
+                return Reflect.apply(target, thisArg, args);
+            }
+        });
+    }
+    patchToString();
+
     class CatCatcher {
         constructor() {
             console.log("catch.js Start");
@@ -469,11 +487,13 @@
          * @param {MouseEvent} event 
          */
         handleAutoToBuffered(event) {
-            // if (!this.autoToBufferedFlag) return;
-            // this.autoToBufferedFlag = false;
-
             const $autoToBuffered = this.catCatch.querySelector("#autoToBuffered");
             if (!$autoToBuffered) return;
+
+            if (event.target.checked && !window.confirm(this.i18n("AutoToBufferedConfirm", "在某些网站可能会造成捕获错误，确定开启？"))) {
+                event.target.checked = false;
+                return;
+            }
 
             localStorage.setItem("CatCatchCatch_autoToBuffered", event.target.checked ? "checked" : "");
 
@@ -484,7 +504,7 @@
                         if (video.buffered && video.buffered.length > 0) {
                             const bufferedEnd = video.buffered.end(0);
                             if ($autoToBuffered.checked && bufferedEnd < video.duration) {
-                                video.currentTime = bufferedEnd - 5;
+                                video.currentTime = bufferedEnd - 8;
                             }
                         }
                     } catch (error) {
@@ -556,49 +576,69 @@
          * 核心函数 代理MediaSource方法
          */
         proxyMediaSourceMethods() {
-            // 代理 addSourceBuffer 方法
-            window.MediaSource.prototype.addSourceBuffer = new Proxy(window.MediaSource.prototype.addSourceBuffer, {
-                apply: (target, thisArg, argumentsList) => {
-                    try {
-                        const result = Reflect.apply(target, thisArg, argumentsList);
+            // 伪装注册辅助: 让钩子(Proxy)在 Function.prototype.toString 下返回原生串
+            const registerNativeStr = (proxy, nativeFn) => {
+                __nativeStrMap.set(proxy, __origToString.call(nativeFn));
+                return proxy;
+            };
 
+            if (!window.MediaSource || !window.SourceBuffer) { return; }
+
+            // SourceBuffer 对应的捕获数据
+            const sourceBuffers = new WeakMap();
+
+            // 代理 addSourceBuffer 方法
+            window.MediaSource.prototype.addSourceBuffer = registerNativeStr(new Proxy(window.MediaSource.prototype.addSourceBuffer, {
+                apply: (target, thisArg, argumentsList) => {
+                    const result = Reflect.apply(target, thisArg, argumentsList);
+                    try {
                         // 标题获取
                         setTimeout(() => { this.getFileName(); }, 2000);
                         this.tips.innerHTML = this.i18n("capturingData", "捕获数据中...");
 
-                        this.catchMedia.push({ mimeType: argumentsList[0], bufferList: [] });
-                        const index = this.catchMedia.length - 1;
-
-                        // 代理 appendBuffer 方法
-                        result.appendBuffer = new Proxy(result.appendBuffer, {
-                            apply: (target, thisArg, argumentsList) => {
-                                Reflect.apply(target, thisArg, argumentsList);
-
-                                if (this.enable && argumentsList[0]) {
-                                    this.mediaSize += argumentsList[0].byteLength || 0;
-                                    if (this.mediaSize >= 1024 * 1024 * 1024 && localStorage.getItem("CatCatchCatch_save1GB") == "checked") {
-                                        this.catchDownload();
-                                        this.clearCache();
-
-                                    }
-                                    if (this.tips) {
-                                        this.tips.innerHTML = this.i18n("capturingData", "捕获数据中...") + ": " + this.byteToSize(this.mediaSize);
-                                    }
-                                    this.catchMedia[index].bufferList.push(argumentsList[0]);
-                                }
-                            }
-                        });
-
-                        return result;
+                        const media = { mimeType: argumentsList[0], bufferList: [] };
+                        this.catchMedia.push(media);
+                        sourceBuffers.set(result, media);
                     } catch (error) {
                         console.error("addSourceBuffer 代理错误:", error);
-                        return Reflect.apply(target, thisArg, argumentsList);
                     }
+                    return result;
                 }
-            });
+            }), window.MediaSource.prototype.addSourceBuffer);
+
+            // 代理 appendBuffer 方法
+            // 挂在原型上 播放器直接调用 SourceBuffer.prototype.appendBuffer 也能捕获 (原来挂在实例上 会被绕过)
+            window.SourceBuffer.prototype.appendBuffer = registerNativeStr(new Proxy(window.SourceBuffer.prototype.appendBuffer, {
+                apply: (target, thisArg, argumentsList) => {
+                    const result = Reflect.apply(target, thisArg, argumentsList);
+                    try {
+                        const media = sourceBuffers.get(thisArg);
+                        if (media && this.enable && argumentsList[0]) {
+                            // 缓存被清空后 继续捕获的数据重新加入列表
+                            if (!this.catchMedia.includes(media)) {
+                                media.bufferList = [];
+                                this.catchMedia.push(media);
+                            }
+                            this.mediaSize += argumentsList[0].byteLength || 0;
+                            if (this.mediaSize >= 1024 * 1024 * 1024 && localStorage.getItem("CatCatchCatch_save1GB") == "checked") {
+                                this.catchDownload();
+                                this.clearCache();
+
+                            }
+                            if (this.tips) {
+                                this.tips.innerHTML = this.i18n("capturingData", "捕获数据中...") + ": " + this.byteToSize(this.mediaSize);
+                            }
+                            media.bufferList.push(argumentsList[0]);
+                        }
+                    } catch (error) {
+                        console.error("appendBuffer 代理错误:", error);
+                    }
+                    return result;
+                }
+            }), window.SourceBuffer.prototype.appendBuffer);
 
             // 代理 endOfStream 方法
-            window.MediaSource.prototype.endOfStream = new Proxy(window.MediaSource.prototype.endOfStream, {
+            window.MediaSource.prototype.endOfStream = registerNativeStr(new Proxy(window.MediaSource.prototype.endOfStream, {
                 apply: (target, thisArg, argumentsList) => {
                     try {
                         Reflect.apply(target, thisArg, argumentsList);
@@ -618,7 +658,7 @@
                         return Reflect.apply(target, thisArg, argumentsList);
                     }
                 }
-            });
+            }), window.MediaSource.prototype.endOfStream);
         }
 
         /**

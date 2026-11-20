@@ -48,6 +48,7 @@
             sentToFfmpeg: "Sent to ffmpeg",
             recordingFailed: "Recording failed",
             scriptNotSupported: "This script is not supported",
+            screenShareNotSupported: "Screen sharing is not supported on this page",
             dragWindow: "Drag window",
             autoToBuffered: "Automatically jump to buffer",
             save1hour: "Save once every hour",
@@ -66,7 +67,8 @@
             closeConfirmation: "Are you sure you want to close?",
             completeClearCache: "Clear data after downloading",
             video: "Video",
-            downloadError: "Download error, please check the network or try again later"
+            downloadError: "Download error, please check the network or try again later",
+            AutoToBufferedConfirm: "In some websites it may cause capture errors, are you sure to enable it?"
         },
 
         es: {
@@ -111,6 +113,7 @@
             sentToFfmpeg: "Enviar a ffmpeg",
             recordingFailed: "Error al grabar",
             scriptNotSupported: "Este script no es compatible",
+            screenShareNotSupported: "Esta página no admite compartir pantalla",
             dragWindow: "Arrastrar ventana",
             autoToBuffered: "Ir al buffer",
             save1hour: "Guardar una vez cada hora",
@@ -129,7 +132,8 @@
             closeConfirmation: "¿Seguro que quieres cerrar?",
             completeClearCache: "Borrar datos después de descargar",
             video: "Vídeo",
-            downloadError: "Error de descarga, compruebe la red o inténtelo de nuevo más tarde"
+            downloadError: "Error de descarga, compruebe la red o inténtelo de nuevo más tarde",
+            AutoToBufferedConfirm: "En algunos sitios web puede causar errores de captura, ¿seguro que desea habilitarlo?"
         },
 
         zh: {
@@ -174,6 +178,7 @@
             sentToFfmpeg: "发送到ffmpeg",
             recordingFailed: "录制失败",
             scriptNotSupported: "当前网页不支持此脚本",
+            screenShareNotSupported: "当前网页不支持屏幕分享",
             dragWindow: "拖动窗口",
             autoToBuffered: "自动跳转到缓冲尾",
             save1hour: "1小时保存一次",
@@ -192,7 +197,8 @@
             closeConfirmation: "确定要关闭吗?",
             completeClearCache: "下载完成后清空数据",
             video: "视频",
-            downloadError: "下载出错，请检查网络或稍后再试"
+            downloadError: "下载出错，请检查网络或稍后再试",
+            AutoToBufferedConfirm: "在某些网站可能会造成捕获错误，确定开启？"
         }
     };
 

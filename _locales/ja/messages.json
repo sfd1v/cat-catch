@@ -137,6 +137,20 @@
   "deepSearch": {
     "message": "深層検索"
   },
+  "umpDecode": {
+    "message": "YouTube のメディアストリーム (UMP) をデコード"
+  },
+  "umpProgress": {
+    "message": "$received$ / $total$ セグメント取得済み。再生が進むと増えます",
+    "placeholders": {
+      "received": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "closeSearch": {
     "message": "検索終了"
   },
@@ -1048,5 +1062,34 @@
   },
   "hideDownloadedSegments": {
     "message": "ダウンロード済みのセグメントを非表示"
+  },
+  "showGroup": {
+    "message": "グループを表示"
+  },
+  "groupTime": {
+    "message": "グループ時間"
+  },
+  "fileName": {
+    "message": "ファイル名"
+  },
+  "videoFloat": {
+    "message": "動画の横にダウンロードパネルを表示"
+  },
+  "videoFloatOther": {
+    "message": "このページの他のリソース"
+  },
+  "videoFloatDownloadStarted": {
+    "message": "ダウンロードを開始しました"
+  },
+  "videoFloatLimit": {
+    "message": "$total$ 個中 $show$ 個のリソースを表示",
+    "placeholders": {
+      "show": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
   }
 }

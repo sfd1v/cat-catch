@@ -46,7 +46,9 @@
                     loop: video.loop,
                     speed: video.playbackRate,
                     muted: video.muted,
-                    type: video.tagName.toLowerCase(),
+                    pip: video.ownerDocument.pictureInPictureElement === video,
+                    // 只有音轨的 video (浏览器直接打开音频文件时用的就是 video) 也按音频处理
+                    type: video.tagName == "AUDIO" || (video.readyState >= 1 && !video.videoWidth && !video.videoHeight) ? "audio" : "video",
                     videoStatus: videoObj.map(v => v.paused ? 1 : 0)
                 });
                 return true;
@@ -232,7 +234,7 @@
         });
     };
     window.addEventListener("message", (event) => {
-        const action = ["catCatchAddMedia", "catCatchAddKey", "catCatchFFmpeg", "catCatchFFmpegResult", "catCatchCloseScript"];
+        const action = ["catCatchAddMedia", "catCatchAddKey", "catCatchFFmpeg", "catCatchFFmpegResult", "catCatchCloseScript", "catCatchUmp"];
         if (!event.data || !event.data.action || event.origin !== window.location.origin || !action.includes(event.data.action)) { return; }
         event.stopPropagation();
         event.stopImmediatePropagation();
@@ -254,6 +256,12 @@
                 return;
             }
             sendAddMedia(event.data);
+        }
+        // 页面内解码 UMP 得到的轨道 (catch-script/ump.js) 交给后台登记到资源列表
+        if (event.data.action == "catCatchUmp") {
+            if (!event.data.key) { return; }
+            chrome.runtime.sendMessage({ ...event.data, Message: "umpMedia", action: undefined });
+            return;
         }
         if (event.data.action == "catCatchAddKey") {
             let key = event.data.key;

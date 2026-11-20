@@ -137,6 +137,20 @@
   "deepSearch": {
     "message": "Ara"
   },
+  "umpDecode": {
+    "message": "YouTube medya akışlarını çöz (UMP)"
+  },
+  "umpProgress": {
+    "message": "$total$ parçadan $received$ tanesi alındı; oynatma ilerledikçe artar",
+    "placeholders": {
+      "received": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "closeSearch": {
     "message": "Aramayı Kapat"
   },
@@ -1048,5 +1062,34 @@
   },
   "hideDownloadedSegments": {
     "message": "İndirilen segmentleri gizle"
+  },
+  "showGroup": {
+    "message": "Grubu Göster"
+  },
+  "groupTime": {
+    "message": "Grup Zamanı"
+  },
+  "fileName": {
+    "message": "Dosya Adı"
+  },
+  "videoFloat": {
+    "message": "Videoların yanında indirme paneli göster"
+  },
+  "videoFloatOther": {
+    "message": "Bu sayfadaki diğer kaynaklar"
+  },
+  "videoFloatDownloadStarted": {
+    "message": "İndirme başlatıldı"
+  },
+  "videoFloatLimit": {
+    "message": "$total$ kaynaktan $show$ tanesi gösteriliyor",
+    "placeholders": {
+      "show": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
   }
 }

@@ -137,6 +137,20 @@
   "deepSearch": {
     "message": "深度搜尋"
   },
+  "umpDecode": {
+    "message": "解碼 YouTube 的媒體串流 (UMP)"
+  },
+  "umpProgress": {
+    "message": "已取得 $received$ / $total$ 個分段，隨播放進度增加",
+    "placeholders": {
+      "received": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "closeSearch": {
     "message": "關閉搜尋"
   },
@@ -1054,5 +1068,28 @@
   },
   "groupTime": {
     "message": "分組時間"
+  },
+  "fileName": {
+    "message": "檔名"
+  },
+  "videoFloat": {
+    "message": "在影片旁顯示下載浮窗"
+  },
+  "videoFloatOther": {
+    "message": "本頁其他資源"
+  },
+  "videoFloatDownloadStarted": {
+    "message": "已開始下載"
+  },
+  "videoFloatLimit": {
+    "message": "資源較多，僅顯示 $show$ / $total$ 個",
+    "placeholders": {
+      "show": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
   }
 }
